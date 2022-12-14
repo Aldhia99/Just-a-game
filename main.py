@@ -74,12 +74,9 @@ class GameState():
         self.bulletSpeed = 0.1
         self.bulletRange = 4
         self.bulletDelay = 10  
-    
-    def update(self,moveTankCommand,targetCommand):
-        for unit in self.units:
-            unit.move(moveTankCommand)
-        for unit in self.units:
-            unit.orientWeapon(targetCommand) 
+        
+        self.observers = [
+        ]
     
     @property
     def worldWidth(self):
@@ -113,7 +110,22 @@ class GameState():
         unit = self.findUnit(position)
         if unit is None or unit.status != "alive":
             return None
-        return unit  
+        return unit 
+    
+    def addObserver(self,observer):
+        """
+        Add a game state observer. 
+        All observer is notified when something happens (see GameStateObserver class)
+        """
+        self.observers.append(observer)
+        
+    def notifyUnitDestroyed(self,unit):
+        for observer in self.observers:
+            observer.unitDestroyed(unit)
+
+class GameStateObserver():
+    def unitDestroyed(self,unit):
+        pass
 class Command():
     def run(self):
         raise NotImplementedError()
@@ -208,6 +220,7 @@ class MoveBulletCommand(Command):
         if not unit is None and unit != self.bullet.unit:
             self.bullet.status = "destroyed"
             unit.status = "destroyed"
+            self.state.notifyUnitDestroyed(unit)
             return
         # Nothing happends, continue bullet trajectory
         self.bullet.position = newPos
@@ -221,7 +234,7 @@ class DeleteDestroyedCommand(Command)       :
         self.itemList[:] = newList 
 
 
-class Layer():
+class Layer(GameStateObserver):
     def __init__(self,cellSize,imageFile):
         self.cellSize = cellSize
         self.texture = pygame.image.load(imageFile)
@@ -232,7 +245,10 @@ class Layer():
 
     @property
     def cellHeight(self):
-        return int(self.cellSize.y)        
+        return int(self.cellSize.y)  
+    
+    def unitDestroyed(self,unit):
+        pass      
         
     def renderTile(self,surface,position,tile,angle=None):
         # Location on screen
@@ -261,17 +277,22 @@ class Layer():
         raise NotImplementedError() 
     
 class ArrayLayer(Layer):
-    def __init__(self,ui,imageFile,gameState,array):
+    def __init__(self,ui,imageFile,gameState,array,surfaceFlags=pygame.SRCALPHA):
         super().__init__(ui,imageFile)
         self.gameState = gameState
         self.array = array
+        self.surface = None
+        self.surfaceFlags = surfaceFlags
 
     def render(self,surface):
-        for y in range(self.gameState.worldHeight):
-            for x in range(self.gameState.worldWidth):
-                tile = self.array[y][x]
-                if not tile is None:
-                    self.renderTile(surface,Vector2(x,y),tile)
+        if self.surface is None:
+            self.surface = pygame.Surface(surface.get_size(),flags=self.surfaceFlags)
+            for y in range(self.gameState.worldHeight):
+                for x in range(self.gameState.worldWidth):
+                    tile = self.array[y][x]
+                    if not tile is None:
+                        self.renderTile(self.surface,Vector2(x,y),tile)
+        surface.blit(self.surface,(0,0))
 
 class UnitsLayer(Layer):
     def __init__(self,ui,imageFile,gameState,units):
@@ -297,6 +318,28 @@ class BulletsLayer(Layer):
         for bullet in self.bullets:
             if bullet.status == "alive":
                 self.renderTile(surface,bullet.position,bullet.tile,bullet.orientation)
+
+class ExplosionsLayer(Layer):
+    def __init__(self,ui,imageFile):
+        super().__init__(ui,imageFile)
+        self.explosions = []
+        self.maxFrameIndex = 27
+
+    def add(self,position):
+        self.explosions.append({
+            'position': position,
+            'frameIndex': 0
+        })
+
+    def unitDestroyed(self,unit):
+        self.add(unit.position)
+
+    def render(self,surface):
+        for explosion in self.explosions:
+            frameIndex = math.floor(explosion['frameIndex'])
+            self.renderTile(surface,explosion['position'],Vector2(frameIndex,4))
+            explosion['frameIndex'] += 0.5
+        self.explosions = [ explosion for explosion in self.explosions if explosion['frameIndex'] < self.maxFrameIndex ]
             
 class UserInterface():
     
@@ -307,12 +350,6 @@ class UserInterface():
         self.gameState = GameState()
         
         self.cellSize = Vector2(64,64)
-        self.layers = [
-            ArrayLayer(self.cellSize,"ground.png",self.gameState,self.gameState.ground),
-            ArrayLayer(self.cellSize,"walls.png",self.gameState,self.gameState.walls),
-            UnitsLayer(self.cellSize,"units.png",self.gameState,self.gameState.units),
-            BulletsLayer(self.cellSize,"explosions.png",self.gameState,self.gameState.bullets)
-        ]
         
         windowSize = self.gameState.worldSize.elementwise()*self.cellSize
         self.screen = pygame.display.set_mode((int(windowSize.x),int(windowSize.y)))
@@ -320,6 +357,17 @@ class UserInterface():
         pygame.display.set_caption("Tank game")
         logo = pygame.image.load("tank.png")
         pygame.display.set_icon(logo)
+        
+        self.layers = [
+            ArrayLayer(self.cellSize,"ground.png",self.gameState,self.gameState.ground,0),
+            ArrayLayer(self.cellSize,"walls.png",self.gameState,self.gameState.walls),
+            UnitsLayer(self.cellSize,"units.png",self.gameState,self.gameState.units),
+            BulletsLayer(self.cellSize,"explosions.png",self.gameState,self.gameState.bullets),
+            ExplosionsLayer(self.cellSize,"explosions.png")
+        ]
+          
+        for layer in self.layers:
+            self.gameState.addObserver(layer)
         
         self.commands = []
         self.playerUnit = self.gameState.units[0]
@@ -374,6 +422,12 @@ class UserInterface():
         command = TargetCommand(self.gameState,self.playerUnit,targetCell)
         self.commands.append(command)
 
+        # Shoot if left mouse was clicked
+        if mouseClicked:
+            self.commands.append(
+                ShootCommand(self.gameState,self.playerUnit)
+            )
+        
          # Other units always target the player's unit and shoot if close enough
         for unit in self.gameState.units:
             if unit != self.playerUnit:
@@ -382,12 +436,6 @@ class UserInterface():
                 distance = unit.position.distance_to(self.playerUnit.position)
                 if distance <= self.gameState.bulletRange:
                     self.commands.append(ShootCommand(self.gameState,unit))
-
-        # Shoot if left mouse was clicked
-        if mouseClicked:
-            self.commands.append(
-                ShootCommand(self.gameState,self.playerUnit)
-            )
 
         # Bullets automatic movement
         for bullet in self.gameState.bullets:
@@ -407,8 +455,6 @@ class UserInterface():
         self.gameState.epoch += 1
         
     def render(self):
-        self.screen.fill((0,0,0))
-
         for layer in self.layers:
             layer.render(self.screen)
 
