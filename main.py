@@ -37,10 +37,30 @@ class GameState():
             Tower(self,Vector2(10,3),Vector2(0,1)),
             Tower(self,Vector2(10,5),Vector2(0,1))
         ]
+        self.ground = [ 
+            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(6,4), Vector2(7,2), Vector2(7,2)],
+            [ Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(6,2), Vector2(5,1), Vector2(6,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(6,1), Vector2(5,1)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(7,1)],
+            [ Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,5), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(8,5), Vector2(5,1), Vector2(5,1)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(7,1)],
+            [ Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(7,1), Vector2(5,1)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(6,4), Vector2(7,2), Vector2(7,2), Vector2(8,4), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(7,4), Vector2(7,2), Vector2(7,2)],
+            [ Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)]
+        ]
     
     def update(self, moveTankCommand):
         for unit in self.units:
             unit.move(moveTankCommand)
+    
+    @property
+    def worldWidth(self):
+        return int(self.worldSize.x)
+    
+    @property
+    def worldHeight(self):
+        return int(self.worldSize.y)
         
 class UserInterface():
     
@@ -54,6 +74,7 @@ class UserInterface():
         
         self.cellSize = Vector2(64,64)
         self.unitsTexture = pygame.image.load("units.png")
+        self.groundTexture = pygame.image.load("ground.png")
         
         windowSize = self.gameState.worldSize.elementwise()*self.cellSize
         self.screen = pygame.display.set_mode((int(windowSize.x),int(windowSize.y)))
@@ -67,6 +88,14 @@ class UserInterface():
         self.moveTankCommand = Vector2()
         self.speed = 0.05
         self.running = True
+        
+    @property
+    def cellWidth(self):
+        return int(self.cellSize.y)
+    
+    @property
+    def cellHeight(self):
+        return int(self.cellSize.x)
 
     def process_input(self):
         for event in pygame.event.get():
@@ -91,16 +120,27 @@ class UserInterface():
         spritePoint = unit.position.elementwise()*self.cellSize
         
         texturePoint = unit.tile.elementwise()*self.cellSize
-        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
+        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),self.cellHeight,self.cellWidth)
         self.screen.blit(self.unitsTexture,spritePoint,textureRect)
         
         texturePoint = Vector2(0,6).elementwise()*self.cellSize
-        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
+        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),self.cellHeight,self.cellWidth)
         self.screen.blit(self.unitsTexture,spritePoint,textureRect)
     
+    def renderGround(self,position,tile):
+        spritePoint = position.elementwise()*self.cellSize
+
+        texturePoint = tile.elementwise()*self.cellSize
+        textureRect = Rect(int(texturePoint.x), int(texturePoint.y),self.cellHeight,self.cellWidth)
+        self.screen.blit(self.groundTexture,spritePoint,textureRect)
+        
     def render(self):
         self.screen.fill((0,0,0))
         
+        for y in range(self.gameState.worldHeight):
+            for x in range(self.gameState.worldWidth):
+                self.renderGround(Vector2(x,y),self.gameState.ground[y][x])
+                
         for unit in self.gameState.units:
             self.renderUnit(unit)
         
