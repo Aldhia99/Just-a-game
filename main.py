@@ -49,6 +49,18 @@ class GameState():
             [ Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(7,4), Vector2(7,2), Vector2(7,2)],
             [ Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)]
         ]
+        self.walls = [
+            [ None, None, None, None, None, None, None, None, None, Vector2(1,3), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1)],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, None, None, None, None],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(1,3), Vector2(1,1), Vector2(0,3), None],
+            [ None, None, None, None, None, None, None, Vector2(1,1), Vector2(1,1), Vector2(3,3), None, None, Vector2(2,1), None, Vector2(2,1), None],
+            [ None, None, None, None, None, None, None, None, None, None, None, None, Vector2(2,1), None, Vector2(2,1), None],
+            [ None, None, None, None, None, None, None, Vector2(1,1), Vector2(1,1), Vector2(0,3), None, None, Vector2(2,1), None, Vector2(2,1), None],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(2,1), None, Vector2(2,1), None],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(2,3), Vector2(1,1), Vector2(3,3), None],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, None, None, None, None],
+            [ None, None, None, None, None, None, None, None, None, Vector2(2,3), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1)]
+        ]    
     
     def update(self, moveTankCommand):
         for unit in self.units:
@@ -61,7 +73,49 @@ class GameState():
     @property
     def worldHeight(self):
         return int(self.worldSize.y)
-        
+
+class Layer():
+    def __init__(self,ui,imageFile):
+        self.ui = ui
+        self.texture = pygame.image.load(imageFile)
+
+    def renderTile(self,surface,position,tile):
+        # Location on screen
+        spritePoint = position.elementwise()*self.ui.cellSize
+
+        # Texture
+        texturePoint = tile.elementwise()*self.ui.cellSize
+        textureRect = Rect(int(texturePoint.x), int(texturePoint.y), self.ui.cellWidth, self.ui.cellHeight)
+
+        # Draw
+        surface.blit(self.texture,spritePoint,textureRect)
+
+    def render(self,surface):
+        raise NotImplementedError()
+class ArrayLayer(Layer):
+    def __init__(self,ui,imageFile,gameState,array):
+        super().__init__(ui,imageFile)
+        self.gameState = gameState
+        self.array = array
+
+    def render(self,surface):
+        for y in range(self.gameState.worldHeight):
+            for x in range(self.gameState.worldWidth):
+                tile = self.array[y][x]
+                if not tile is None:
+                    self.renderTile(surface,Vector2(x,y),tile)
+
+class UnitsLayer(Layer):
+    def __init__(self,ui,imageFile,gameState,units):
+        super().__init__(ui,imageFile)
+        self.gameState = gameState
+        self.units = units
+
+    def render(self,surface):
+        for unit in self.units:
+            self.renderTile(surface,unit.position,unit.tile)
+            self.renderTile(surface,unit.position,Vector2(0,6))
+            
 class UserInterface():
     
     def __init__(self) -> None:
@@ -73,8 +127,11 @@ class UserInterface():
         self.gameState = GameState()
         
         self.cellSize = Vector2(64,64)
-        self.unitsTexture = pygame.image.load("units.png")
-        self.groundTexture = pygame.image.load("ground.png")
+        self.layers = [
+            ArrayLayer(self,"ground.png",self.gameState,self.gameState.ground),
+            ArrayLayer(self,"walls.png",self.gameState,self.gameState.walls),
+            UnitsLayer(self,"units.png",self.gameState,self.gameState.units)
+        ]
         
         windowSize = self.gameState.worldSize.elementwise()*self.cellSize
         self.screen = pygame.display.set_mode((int(windowSize.x),int(windowSize.y)))
@@ -115,36 +172,14 @@ class UserInterface():
     
     def update(self):
         self.gameState.update(self.moveTankCommand)
-    
-    def renderUnit(self, unit):
-        spritePoint = unit.position.elementwise()*self.cellSize
-        
-        texturePoint = unit.tile.elementwise()*self.cellSize
-        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),self.cellHeight,self.cellWidth)
-        self.screen.blit(self.unitsTexture,spritePoint,textureRect)
-        
-        texturePoint = Vector2(0,6).elementwise()*self.cellSize
-        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),self.cellHeight,self.cellWidth)
-        self.screen.blit(self.unitsTexture,spritePoint,textureRect)
-    
-    def renderGround(self,position,tile):
-        spritePoint = position.elementwise()*self.cellSize
-
-        texturePoint = tile.elementwise()*self.cellSize
-        textureRect = Rect(int(texturePoint.x), int(texturePoint.y),self.cellHeight,self.cellWidth)
-        self.screen.blit(self.groundTexture,spritePoint,textureRect)
         
     def render(self):
         self.screen.fill((0,0,0))
-        
-        for y in range(self.gameState.worldHeight):
-            for x in range(self.gameState.worldWidth):
-                self.renderGround(Vector2(x,y),self.gameState.ground[y][x])
-                
-        for unit in self.gameState.units:
-            self.renderUnit(unit)
-        
-        pygame.display.update()
+
+        for layer in self.layers:
+            layer.render(self.screen)
+
+        pygame.display.update() 
 
     def main(self):
         while self.running:
