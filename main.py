@@ -2,26 +2,45 @@ import pygame, sys, os
 from pygame.math import Vector2
 from pygame import Rect
 
+class Unit():
+    def __init__(self,state,position,tile) -> None:
+        self.state = state
+        self.position = position
+        self.tile = tile
+    def move(self,moveVector):
+        raise NotImplementedError()
+
+class Tank(Unit):
+    def move(self, moveVector):
+        newPos = self.position + moveVector
+        
+        if newPos.x < 0 or newPos.x >= self.state.worldSize.x-1 \
+        or newPos.y < 0 or newPos.y >= self.state.worldSize.y-1:
+            return
+        
+        for unit in self.state.units:
+            if newPos == unit.position:
+                return
+        
+        self.position = newPos
+
+class Tower(Unit):
+    def move(self,moveVector):
+        pass
+
 class GameState():
     
     def __init__(self) -> None:
         self.worldSize = Vector2(16,10)
-        self.tankPos = Vector2(5,4)
-        self.towersPos = [Vector2(10,3), Vector2(10,5)]
+        self.units = [
+            Tank(self,Vector2(5,4),Vector2(1,0)),
+            Tower(self,Vector2(10,3),Vector2(0,1)),
+            Tower(self,Vector2(10,5),Vector2(0,1))
+        ]
     
     def update(self, moveTankCommand):
-
-        newTankPos = self.tankPos + moveTankCommand
-        
-        if newTankPos.x < 0 or newTankPos.x >= self.worldSize.x-1 \
-        or newTankPos.y < 0 or newTankPos.y >= self.worldSize.y-1:
-            return
-        
-        for position in self.towersPos:
-            if newTankPos == position:
-                return
-        
-        self.tankPos = newTankPos
+        for unit in self.units:
+            unit.move(moveTankCommand)
         
 class UserInterface():
     
@@ -46,7 +65,7 @@ class UserInterface():
         self.clock = pygame.time.Clock()
         
         self.moveTankCommand = Vector2()
-        self.speed = 0.1
+        self.speed = 0.05
         self.running = True
 
     def process_input(self):
@@ -68,27 +87,22 @@ class UserInterface():
     def update(self):
         self.gameState.update(self.moveTankCommand)
     
-    def render(self):
-        self.screen.fill((0,0,0))
+    def renderUnit(self, unit):
+        spritePoint = unit.position.elementwise()*self.cellSize
         
-        spritePoint = self.gameState.tankPos.elementwise()*self.cellSize
-        texturePoint = Vector2(1,0).elementwise()*self.cellSize
+        texturePoint = unit.tile.elementwise()*self.cellSize
         textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
         self.screen.blit(self.unitsTexture,spritePoint,textureRect)
         
         texturePoint = Vector2(0,6).elementwise()*self.cellSize
         textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
         self.screen.blit(self.unitsTexture,spritePoint,textureRect)
+    
+    def render(self):
+        self.screen.fill((0,0,0))
         
-        for position in self.gameState.towersPos:
-            spritePoint = position.elementwise()*self.cellSize
-            texturePoint = Vector2(0,1).elementwise()*self.cellSize
-            textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
-            self.screen.blit(self.unitsTexture,spritePoint,textureRect)
-        
-            texturePoint = Vector2(0,6).elementwise()*self.cellSize
-            textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
-            self.screen.blit(self.unitsTexture,spritePoint,textureRect)
+        for unit in self.gameState.units:
+            self.renderUnit(unit)
         
         pygame.display.update()
 
