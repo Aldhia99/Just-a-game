@@ -6,20 +6,22 @@ class GameState():
     
     def __init__(self) -> None:
         self.worldSize = Vector2(16,10)
-        self.tankPos = Vector2(100,100)
+        self.tankPos = Vector2(5,4)
+        self.towersPos = [Vector2(10,3), Vector2(10,5)]
     
     def update(self, moveTankCommand):
-        self.tankPos += moveTankCommand
+
+        newTankPos = self.tankPos + moveTankCommand
         
-        if self.tankPos.x < 0:
-            self.tankPos.x = 0
-        elif self.tankPos.x >= self.worldSize.x-1:
-            self.tankPos.x = self.worldSize.x -1
+        if newTankPos.x < 0 or newTankPos.x >= self.worldSize.x-1 \
+        or newTankPos.y < 0 or newTankPos.y >= self.worldSize.y-1:
+            return
         
-        if self.tankPos.y < 0:
-            self.tankPos.y = 0
-        elif self.tankPos.y >= self.worldSize.y-1:
-            self.tankPos.y = self.worldSize.y -1
+        for position in self.towersPos:
+            if newTankPos == position:
+                return
+        
+        self.tankPos = newTankPos
         
 class UserInterface():
     
@@ -73,6 +75,20 @@ class UserInterface():
         texturePoint = Vector2(1,0).elementwise()*self.cellSize
         textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
         self.screen.blit(self.unitsTexture,spritePoint,textureRect)
+        
+        texturePoint = Vector2(0,6).elementwise()*self.cellSize
+        textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
+        self.screen.blit(self.unitsTexture,spritePoint,textureRect)
+        
+        for position in self.gameState.towersPos:
+            spritePoint = position.elementwise()*self.cellSize
+            texturePoint = Vector2(0,1).elementwise()*self.cellSize
+            textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
+            self.screen.blit(self.unitsTexture,spritePoint,textureRect)
+        
+            texturePoint = Vector2(0,6).elementwise()*self.cellSize
+            textureRect = Rect(int(texturePoint.x),int(texturePoint.y),int(self.cellSize.x),int(self.cellSize.y))
+            self.screen.blit(self.unitsTexture,spritePoint,textureRect)
         
         pygame.display.update()
 
