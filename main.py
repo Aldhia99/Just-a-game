@@ -1,5 +1,15 @@
 import pygame, sys, os
 
+class GameState():
+    
+    def __init__(self) -> None:
+        self.x = 100
+        self.y = 100
+    
+    def update(self, moveCommandX, moveCommandY):
+        self.x += moveCommandX
+        self.y += moveCommandY
+        
 class Game():
     
     def __init__(self) -> None:
@@ -16,9 +26,9 @@ class Game():
         
         self.clock = pygame.time.Clock()
         
-        self.x = 100
-        self.y = 100
-        self.dir = ""
+        self.gameState = GameState()
+        self.moveCommandX = 0
+        self.moveCommandY = 0
         self.speed = 3
         self.running = True
 
@@ -30,27 +40,20 @@ class Game():
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                 elif event.key == pygame.K_UP or event.key == pygame.K_w:
-                    self.dir = "u"
+                    self.moveCommandY = -self.speed
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    self.dir = "s"
+                    self.moveCommandY = self.speed
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    self.dir = "r"
+                    self.moveCommandX = self.speed
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                    self.dir = "l"
+                    self.moveCommandX = -self.speed
     
     def update(self):
-        if self.dir == "u" and self.y>0:
-            self.y -= self.speed
-        elif self.dir == "s" and self.y<400:
-            self.y += self.speed
-        if self.dir == "r" and self.x<400:
-            self.x += self.speed
-        elif self.dir == "l" and self.x>0:
-            self.x -= self.speed
+        self.gameState.update(self.moveCommandX,self.moveCommandY)
     
     def render(self):
         self.screen.fill((0,0,0))
-        pygame.draw.rect(self.screen,(0,255,0),(self.x,self.y,100,100))
+        pygame.draw.rect(self.screen,(0,255,0),(self.gameState.x,self.gameState.y,100,100))
         pygame.display.update()
 
     def main(self):
