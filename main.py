@@ -3,13 +3,7 @@ import pygame, sys, os
 class Game():
     
     def __init__(self) -> None:
-         self.x = 100
-         self.y = 100
-         self.dir = ""
-         self.speed = 3
-    
-    def init(self):
-        
+                
         os.environ['SDL_VIDEO_CENTERED'] = '1'
         
         pygame.init()
@@ -21,29 +15,37 @@ class Game():
         pygame.display.set_icon(logo)
         
         self.clock = pygame.time.Clock()
+        
+        self.x = 100
+        self.y = 100
+        self.dir = ""
+        self.speed = 3
+        self.running = True
 
-    def input(self, event):
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP or event.key == pygame.K_w:
-                self.dir = "u"
-            elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                self.dir = "s"
-            elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                self.dir = "r"
-            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                self.dir = "l"
+    def process_input(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.running = False
+                elif event.key == pygame.K_UP or event.key == pygame.K_w:
+                    self.dir = "u"
+                elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    self.dir = "s"
+                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    self.dir = "r"
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    self.dir = "l"
     
     def update(self):
-        if self.dir == "u":
+        if self.dir == "u" and self.y>0:
             self.y -= self.speed
-        elif self.dir == "s":
+        elif self.dir == "s" and self.y<400:
             self.y += self.speed
-        if self.dir == "r":
+        if self.dir == "r" and self.x<400:
             self.x += self.speed
-        elif self.dir == "l":
+        elif self.dir == "l" and self.x>0:
             self.x -= self.speed
     
     def render(self):
@@ -52,10 +54,8 @@ class Game():
         pygame.display.update()
 
     def main(self):
-        self.init()
-        while True:
-            for event in pygame.event.get():
-                self.input(event)
+        while self.running:
+            self.process_input()
             self.update()
             self.render()
             self.clock.tick(60)
@@ -63,3 +63,5 @@ class Game():
 if __name__=="__main__":
     game = Game()
     game.main()
+    pygame.quit()
+    sys.exit()
