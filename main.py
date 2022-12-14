@@ -1,32 +1,69 @@
-import pygame, sys, os
+import pygame, sys, os, math
 from pygame.math import Vector2
 from pygame import Rect
 
 class Unit():
-    def __init__(self,state,position,tile) -> None:
+    def __init__(self,state,position,tile):
         self.state = state
         self.position = position
         self.tile = tile
-    def move(self,moveVector):
-        raise NotImplementedError()
+        self.orientation = 0
+        self.weaponTarget = Vector2(0,0)  
 
 class Tank(Unit):
-    def move(self, moveVector):
-        newPos = self.position + moveVector
-        
-        if newPos.x < 0 or newPos.x >= self.state.worldSize.x-1 \
-        or newPos.y < 0 or newPos.y >= self.state.worldSize.y-1:
-            return
-        
-        for unit in self.state.units:
-            if newPos == unit.position:
-                return
-        
-        self.position = newPos
+    def __init__(self,state,position,tile):
+        super().__init__(state,position,tile)
 
 class Tower(Unit):
-    def move(self,moveVector):
-        pass
+    def __init__(self,state,position,tile):
+        super().__init__(state,position,tile) 
+
+class Command():
+    def run(self):
+        raise NotImplementedError()
+    
+class MoveCommand(Command):
+    def __init__(self,state,unit,moveVector):
+        self.state = state
+        self.unit = unit
+        self.moveVector = moveVector
+    def run(self):
+        # Update unit orientation
+        if self.moveVector.x < 0: 
+            self.unit.orientation = 90
+        elif self.moveVector.x > 0: 
+            self.unit.orientation = -90
+        if self.moveVector.y < 0: 
+            self.unit.orientation = 0
+        elif self.moveVector.y > 0: 
+            self.unit.orientation = 180
+
+        # Compute new tank position
+        newPos = self.unit.position + self.moveVector
+
+        # Don't allow positions outside the world
+        if newPos.x < 0 or newPos.x >= self.state.worldWidth \
+        or newPos.y < 0 or newPos.y >= self.state.worldHeight:
+            return
+
+        # Don't allow wall positions
+        if not self.state.walls[int(newPos.y)][int(newPos.x)] is None:
+            return
+
+        # Don't allow other unit positions 
+        for otherUnit in self.state.units:
+            if newPos == otherUnit.position:
+                return
+
+        self.unit.position = newPos
+
+class TargetCommand(Command):
+    def __init__(self,state,unit,target):
+        self.state = state
+        self.unit = unit
+        self.target = target
+    def run(self):
+        self.unit.weaponTarget = self.target
 
 class GameState():
     
@@ -62,9 +99,11 @@ class GameState():
             [ None, None, None, None, None, None, None, None, None, Vector2(2,3), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1)]
         ]    
     
-    def update(self, moveTankCommand):
+    def update(self,moveTankCommand,targetCommand):
         for unit in self.units:
             unit.move(moveTankCommand)
+        for unit in self.units:
+            unit.orientWeapon(targetCommand) 
     
     @property
     def worldWidth(self):
@@ -79,7 +118,7 @@ class Layer():
         self.ui = ui
         self.texture = pygame.image.load(imageFile)
 
-    def renderTile(self,surface,position,tile):
+    def renderTile(self,surface,position,tile,angle=None):
         # Location on screen
         spritePoint = position.elementwise()*self.ui.cellSize
 
@@ -88,7 +127,20 @@ class Layer():
         textureRect = Rect(int(texturePoint.x), int(texturePoint.y), self.ui.cellWidth, self.ui.cellHeight)
 
         # Draw
-        surface.blit(self.texture,spritePoint,textureRect)
+        if angle is None:
+            surface.blit(self.texture,spritePoint,textureRect)
+        else:
+            # Extract the tile in a surface
+            textureTile = pygame.Surface((self.ui.cellWidth,self.ui.cellHeight),pygame.SRCALPHA)
+            textureTile.blit(self.texture,(0,0),textureRect)
+            # Rotate the surface with the tile
+            rotatedTile = pygame.transform.rotate(textureTile,angle)
+            # Compute the new coordinate on the screen, knowing that we rotate around the center of the tile
+            spritePoint.x -= (rotatedTile.get_width() - textureTile.get_width()) // 2
+            spritePoint.y -= (rotatedTile.get_height() - textureTile.get_height()) // 2
+            # Render the rotatedTile
+            surface.blit(rotatedTile,spritePoint)
+
 
     def render(self,surface):
         raise NotImplementedError()
@@ -114,7 +166,9 @@ class UnitsLayer(Layer):
     def render(self,surface):
         for unit in self.units:
             self.renderTile(surface,unit.position,unit.tile)
-            self.renderTile(surface,unit.position,Vector2(0,6))
+            size = unit.weaponTarget - unit.position
+            angle = math.atan2(-size.x,-size.y) * 180 / math.pi
+            self.renderTile(surface,unit.position,Vector2(0,6),angle)
             
 class UserInterface():
     
@@ -142,8 +196,10 @@ class UserInterface():
         
         self.clock = pygame.time.Clock()
         
-        self.moveTankCommand = Vector2()
-        self.speed = 0.05
+        self.commands = []
+        self.playerUnit = self.gameState.units[0]
+        
+        self.speed = 1
         self.running = True
         
     @property
@@ -155,23 +211,49 @@ class UserInterface():
         return int(self.cellSize.x)
 
     def process_input(self):
+
+        # Pygame events (close & keyboard)
+        moveVector = Vector2()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+                break
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
-                elif event.key == pygame.K_UP or event.key == pygame.K_w:
-                    self.moveTankCommand.y = -self.speed
-                elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    self.moveTankCommand.y = self.speed
-                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    self.moveTankCommand.x = self.speed
-                elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                    self.moveTankCommand.x = -self.speed
+                    break
+                elif event.key == pygame.K_RIGHT:
+                    moveVector.x = self.speed
+                elif event.key == pygame.K_LEFT:
+                    moveVector.x = -self.speed
+                elif event.key == pygame.K_DOWN:
+                    moveVector.y = self.speed
+                elif event.key == pygame.K_UP:
+                    moveVector.y = -self.speed
+
+        # Keyboard controls the moves of the player's unit
+        if moveVector.x != 0 or moveVector.y != 0:
+            command = MoveCommand(self.gameState,self.playerUnit,moveVector)
+            self.commands.append(command)
+
+        # Mouse controls the target of the player's unit
+        mousePos = pygame.mouse.get_pos()                    
+        targetCell = Vector2()
+        targetCell.x = mousePos[0] / self.cellWidth - 0.5
+        targetCell.y = mousePos[1] / self.cellHeight - 0.5
+        command = TargetCommand(self.gameState,self.playerUnit,targetCell)
+        self.commands.append(command)
+
+        # Other units always target the player's unit
+        for  unit in self.gameState.units:
+            if unit != self.playerUnit:
+                command = TargetCommand(self.gameState,unit,self.playerUnit.position)
+                self.commands.append(command)
     
     def update(self):
-        self.gameState.update(self.moveTankCommand)
+        for command in self.commands:
+            command.run()
+        self.commands.clear()
         
     def render(self):
         self.screen.fill((0,0,0))
