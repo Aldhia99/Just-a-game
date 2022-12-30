@@ -1,4 +1,4 @@
-import pygame, sys, os, math
+import pygame, sys, os, math, tmx
 from pygame.math import Vector2
 from pygame import Rect
 
@@ -38,45 +38,14 @@ class GameState():
     def __init__(self) -> None:
         self.epoch = 0
         self.worldSize = Vector2(16,10)
-        self.units = [
-            Unit(self,Vector2(1,9),Vector2(1,0)),
-            Unit(self,Vector2(6,3),Vector2(0,2)),
-            Unit(self,Vector2(6,5),Vector2(0,2)),
-            Unit(self,Vector2(13,3),Vector2(0,1)),
-            Unit(self,Vector2(13,6),Vector2(0,1))
-        ]
-        self.ground = [ 
-            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
-            [ Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,4), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2)],
-            [ Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(6,2), Vector2(5,1), Vector2(6,1), Vector2(6,1), Vector2(5,1), Vector2(6,2), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
-            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(7,1)],
-            [ Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,5), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(8,5), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
-            [ Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(7,1)],
-            [ Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(6,2), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
-            [ Vector2(5,1), Vector2(6,4), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(8,4), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)],
-            [ Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(7,1), Vector2(5,1), Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(7,4), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2), Vector2(7,2)],
-            [ Vector2(5,1), Vector2(6,2), Vector2(5,1), Vector2(6,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1), Vector2(5,1)]
-        ]
-        self.walls = [
-            [ None, None, None, None, None, None, None, None, None, Vector2(1,3), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1)],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, None, None, None, None],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(1,3), Vector2(1,1), Vector2(0,3), None],
-            [ None, None, None, None, None, None, None, Vector2(1,1), Vector2(1,1), Vector2(3,3), None, None, Vector2(2,1), None, Vector2(2,1), None],
-            [ None, None, None, None, None, None, None, None, None, None, None, None, Vector2(2,1), None, Vector2(2,1), None],
-            [ None, None, None, None, None, None, None, Vector2(1,1), Vector2(1,1), Vector2(0,3), None, None, Vector2(2,1), None, Vector2(2,1), None],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(2,1), None, Vector2(2,1), None],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, Vector2(2,3), Vector2(1,1), Vector2(3,3), None],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,1), None, None, None, None, None, None],
-            [ None, None, None, None, None, None, None, None, None, Vector2(2,3), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1), Vector2(1,1)]
-        ]
-        self.bullets = [
-        ]
+        self.ground = [ [ Vector2(5,1) ] * 16 ] * 10
+        self.walls = [ [ None ] * 16 ] * 10
+        self.units = [ Unit(self,Vector2(8,9),Vector2(1,0)) ]
+        self.bullets = [ ]
         self.bulletSpeed = 0.1
         self.bulletRange = 4
-        self.bulletDelay = 10  
-        
-        self.observers = [
-        ]
+        self.bulletDelay = 5
+        self.observers = [ ]
     
     @property
     def worldWidth(self):
@@ -233,9 +202,162 @@ class DeleteDestroyedCommand(Command)       :
         newList = [ item for item in self.itemList if item.status == "alive" ]
         self.itemList[:] = newList 
 
+class LoadLevelCommand(Command)       :
+    def __init__(self,gameMode,fileName):
+        self.gameMode = gameMode
+        self.fileName = fileName
+        
+    def decodeLayer(self,tileMap,layer):
+        """
+        Decode layer and check layer properties
+        
+        Returns the corresponding tileset
+        """
+        if not isinstance(layer,tmx.Layer):
+            raise RuntimeError("Error in {}: invalid layer type".format(self.fileName))
+        if len(layer.tiles) != tileMap.width * tileMap.height:
+            raise RuntimeError("Error in {}: invalid tiles count".format(self.fileName))
+        
+        # Guess which tileset is used by this layer
+        gid = None
+        for tile in layer.tiles:
+            if tile.gid != 0:
+                gid = tile.gid
+                break
+        if gid is None:
+            if len(tileMap.tilesets) == 0:
+                raise RuntimeError("Error in {}: no tilesets".format(self.fileName))
+            tileset = tileMap.tilesets[0]
+        else:
+            tileset = None
+            for t in tileMap.tilesets:
+                if gid >= t.firstgid and gid < t.firstgid+t.tilecount:
+                    tileset = t
+                    break
+            if tileset is None:
+                raise RuntimeError("Error in {}: no corresponding tileset".format(self.fileName))
+            
+        # Check the tileset
+        if tileset.columns <= 0:
+            raise RuntimeError("Error in {}: invalid columns count".format(self.fileName))
+        if tileset.image.data is not None:
+            raise RuntimeError("Error in {}: embedded tileset image is not supported".format(self.fileName))
+            
+        return tileset
+        
+    def decodeArrayLayer(self,tileMap,layer):
+        """
+        Create an array from a tileMap layer
+        """        
+        tileset = self.decodeLayer(tileMap,layer)
+        
+        array = [ None ] * tileMap.height
+        for y in range(tileMap.height):
+            array[y] = [ None ] * tileMap.width
+            for x in range(tileMap.width):
+                tile = layer.tiles[x + y*tileMap.width]
+                if tile.gid == 0:
+                    continue
+                lid = tile.gid - tileset.firstgid
+                if lid < 0 or lid >= tileset.tilecount:
+                    raise RuntimeError("Error in {}: invalid tile id".format(self.fileName))
+                tileX = lid % tileset.columns
+                tileY = lid // tileset.columns
+                array[y][x] = Vector2(tileX,tileY)
+
+        return tileset, array
+    
+    def decodeUnitsLayer(self,state,tileMap,layer):
+        """
+        Create a list from a tileMap layer
+        """        
+        tileset = self.decodeLayer(tileMap,layer)
+
+        units = []
+        for y in range(tileMap.height):
+            for x in range(tileMap.width):
+                tile = layer.tiles[x + y*tileMap.width]
+                if tile.gid == 0:
+                    continue
+                lid = tile.gid - tileset.firstgid
+                if lid < 0 or lid >= tileset.tilecount:
+                    raise RuntimeError("Error in {}: invalid tile id".format(self.fileName))
+                tileX = lid % tileset.columns
+                tileY = lid // tileset.columns
+                unit = Unit(state,Vector2(x,y),Vector2(tileX,tileY))
+                units.append(unit)
+
+        return tileset, units
+        
+        
+    def run(self):
+        # Load map
+        if not os.path.exists(self.fileName):
+            raise RuntimeError("No file {}".format(self.fileName))
+        tileMap = tmx.TileMap.load(self.fileName)
+        
+        # Check main properties
+        if tileMap.orientation != "orthogonal":
+            raise RuntimeError("Error in {}: invalid orientation".format(self.fileName))
+            
+        if len(tileMap.layers) != 5:
+            raise RuntimeError("Error in {}: 5 layers are expected".format(self.fileName))
+
+        # World size
+        state = self.gameMode.gameState
+        state.worldSize = Vector2(tileMap.width,tileMap.height)    
+
+        # Ground layer
+        tileset, array = self.decodeArrayLayer(tileMap,tileMap.layers[0])
+        cellSize = Vector2(tileset.tilewidth,tileset.tileheight)
+        state.ground[:] = array
+        imageFile = tileset.image.source
+        self.gameMode.layers[0].setTileset(cellSize,imageFile)
+
+        # Walls layer
+        tileset, array = self.decodeArrayLayer(tileMap,tileMap.layers[1])
+        if tileset.tilewidth != cellSize.x or tileset.tileheight != cellSize.y:
+            raise RuntimeError("Error in {}: tile sizes must be the same in all layers".format(self.fileName))
+        state.walls[:] = array
+        imageFile = tileset.image.source
+        self.gameMode.layers[1].setTileset(cellSize,imageFile)
+
+        # Units layer
+        tanksTileset, tanks = self.decodeUnitsLayer(state,tileMap,tileMap.layers[2])
+        towersTileset, towers = self.decodeUnitsLayer(state,tileMap,tileMap.layers[3])
+        if tanksTileset != towersTileset:
+            raise RuntimeError("Error in {}: tanks and towers tilesets must be the same".format(self.fileName))
+        if tanksTileset.tilewidth != cellSize.x or tanksTileset.tileheight != cellSize.y:
+            raise RuntimeError("Error in {}: tile sizes must be the same in all layers".format(self.fileName))
+        state.units[:] = tanks + towers
+        cellSize = Vector2(tanksTileset.tilewidth,tanksTileset.tileheight)
+        imageFile = tanksTileset.image.source
+        self.gameMode.layers[2].setTileset(cellSize,imageFile)
+
+        # Player units
+        self.gameMode.playerUnit = tanks[0]      
+        
+        # Explosions layers
+        tileset, array = self.decodeArrayLayer(tileMap,tileMap.layers[4])
+        if tileset.tilewidth != cellSize.x or tileset.tileheight != cellSize.y:
+            raise RuntimeError("Error in {}: tile sizes must be the same in all layers".format(self.fileName))
+        state.bullets.clear()
+        imageFile = tileset.image.source
+        self.gameMode.layers[3].setTileset(cellSize,imageFile)
+        
+        # Window
+        windowSize = state.worldSize.elementwise() * cellSize
+        self.gameMode.ui.window = pygame.display.set_mode((int(windowSize.x),int(windowSize.y)))
+        
+        # Resume game
+        self.gameMode.gameOver = False
 
 class Layer(GameStateObserver):
     def __init__(self,cellSize,imageFile):
+        self.cellSize = cellSize
+        self.texture = pygame.image.load(imageFile)
+    
+    def setTileset(self,cellSize,imageFile):
         self.cellSize = cellSize
         self.texture = pygame.image.load(imageFile)
         
@@ -283,6 +405,10 @@ class ArrayLayer(Layer):
         self.array = array
         self.surface = None
         self.surfaceFlags = surfaceFlags
+    
+    def setTileset(self,cellSize,imageFile):
+        super().setTileset(cellSize,imageFile)
+        self.surface = None
 
     def render(self,surface):
         if self.surface is None:
@@ -341,23 +467,139 @@ class ExplosionsLayer(Layer):
             explosion['frameIndex'] += 0.5
         self.explosions = [ explosion for explosion in self.explosions if explosion['frameIndex'] < self.maxFrameIndex ]
             
-class UserInterface():
-    
-    def __init__(self) -> None:
-                
-        pygame.init()
+class GameMode():
+    def processInput(self):
+        raise NotImplementedError()
+    def update(self):
+        raise NotImplementedError()
+    def render(self, screen):
+        raise NotImplementedError()
+
+class MessageGameMode(GameMode):
+    def __init__(self, ui, message):        
+        self.ui = ui
+        self.font = pygame.font.Font("BD_Cartoon_Shout.ttf", 36)
+        self.message = message
+
+    def processInput(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.ui.quitGame()
+                break
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE \
+                or event.key == pygame.K_SPACE \
+                or event.key == pygame.K_RETURN:
+                    self.ui.showMenu()
+                    
+    def update(self):
+        pass
         
+    def render(self, window):
+        surface = self.font.render(self.message, True, (200, 0, 0))
+        x = (window.get_width() - surface.get_width()) // 2
+        y = (window.get_height() - surface.get_height()) // 2
+        window.blit(surface, (x, y))
+
+class MenuGameMode(GameMode):
+    def __init__(self, ui):        
+        self.ui = ui
+        
+        # Font
+        self.titleFont = pygame.font.Font("BD_Cartoon_Shout.ttf", 72)
+        self.itemFont = pygame.font.Font("BD_Cartoon_Shout.ttf", 48)
+        
+        # Menu items
+        self.menuItems = [
+            {
+                'title': 'Level 1',
+                'action': lambda: self.ui.loadLevel("level1.tmx")
+            },
+            {
+                'title': 'Level 2',
+                'action': lambda: self.ui.loadLevel("level2.tmx")
+            },
+            {
+                'title': 'Level 3',
+                'action': lambda: self.ui.loadLevel("level3.tmx")
+            },
+            {
+                'title': 'Quit',
+                'action': lambda: self.ui.quitGame()
+            }
+        ]        
+
+        # Compute menu width
+        self.menuWidth = 0
+        for item in self.menuItems:
+            surface = self.itemFont.render(item['title'], True, (200, 0, 0))
+            self.menuWidth = max(self.menuWidth, surface.get_width())
+            item['surface'] = surface        
+        
+        self.currentMenuItem = 0
+        self.menuCursor = pygame.image.load("cursor.png")        
+
+    def processInput(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.ui.quitGame()
+                break
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.ui.showGame()
+                elif event.key == pygame.K_DOWN:
+                    if self.currentMenuItem < len(self.menuItems) - 1:
+                        self.currentMenuItem += 1
+                elif event.key == pygame.K_UP:
+                    if self.currentMenuItem > 0:
+                        self.currentMenuItem -= 1
+                elif event.key == pygame.K_RETURN:
+                    menuItem = self.menuItems[self.currentMenuItem]
+                    try:
+                        menuItem['action']()
+                    except Exception as ex:
+                        print(ex)
+                    
+    def update(self):
+        pass
+        
+    def render(self, window):
+        # Initial y
+        y = 50
+        
+        # Title
+        surface = self.titleFont.render("TANK BATTLEGROUNDS !!", True, (200, 0, 0))
+        x = (window.get_width() - surface.get_width()) // 2
+        window.blit(surface, (x, y))
+        y += (200 * surface.get_height()) // 100
+        
+        # Draw menu items
+        x = (window.get_width() - self.menuWidth) // 2
+        for index, item in enumerate(self.menuItems):
+            # Item text
+            surface = item['surface']
+            window.blit(surface, (x, y))
+            
+            # Cursor
+            if index == self.currentMenuItem:
+                cursorX = x - self.menuCursor.get_width() - 10
+                cursorY = y + (surface.get_height() - self.menuCursor.get_height()) // 2
+                window.blit(self.menuCursor, (cursorX, cursorY))
+            
+            y += (120 * surface.get_height()) // 100           
+            
+
+class PlayGameMode(GameMode):
+    def __init__(self, ui):
+        self.ui = ui
+        
+        # Game state
         self.gameState = GameState()
         
-        self.cellSize = Vector2(64,64)
-        
-        windowSize = self.gameState.worldSize.elementwise()*self.cellSize
-        self.screen = pygame.display.set_mode((int(windowSize.x),int(windowSize.y)))
-        
-        pygame.display.set_caption("Tank game")
-        logo = pygame.image.load("tank.png")
-        pygame.display.set_icon(logo)
-        
+        # Rendering properties
+        self.cellSize = Vector2(64,64)        
+
+        # Layers
         self.layers = [
             ArrayLayer(self.cellSize,"ground.png",self.gameState,self.gameState.ground,0),
             ArrayLayer(self.cellSize,"walls.png",self.gameState,self.gameState.walls),
@@ -365,55 +607,57 @@ class UserInterface():
             BulletsLayer(self.cellSize,"explosions.png",self.gameState,self.gameState.bullets),
             ExplosionsLayer(self.cellSize,"explosions.png")
         ]
-          
+        
+        # All layers listen to game state events
         for layer in self.layers:
             self.gameState.addObserver(layer)
-        
-        self.commands = []
+
+        # Controls
         self.playerUnit = self.gameState.units[0]
-        
-        self.speed = 1
-        
-        self.clock = pygame.time.Clock()
-        self.running = True
+        self.gameOver = False
+        self.commands = [ ]
         
     @property
     def cellWidth(self):
-        return int(self.cellSize.y)
-    
-    @property
-    def cellHeight(self):
         return int(self.cellSize.x)
 
-    def process_input(self):
+    @property
+    def cellHeight(self):
+        return int(self.cellSize.y)
 
-        # Pygame events (close & keyboard)
+    def processInput(self):
+        # Pygame events (close, keyboard and mouse click)
         moveVector = Vector2()
         mouseClicked = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.running = False
+                self.ui.quitGame()
                 break
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.running = False
+                    self.ui.showMenu()
                     break
                 elif event.key == pygame.K_RIGHT:
-                    moveVector.x = self.speed
+                    moveVector.x = 1
                 elif event.key == pygame.K_LEFT:
-                    moveVector.x = -self.speed
+                    moveVector.x = -1
                 elif event.key == pygame.K_DOWN:
-                    moveVector.y = self.speed
+                    moveVector.y = 1
                 elif event.key == pygame.K_UP:
-                    moveVector.y = -self.speed
+                    moveVector.y = -1
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouseClicked = True
 
+        # If the game is over, all commands creations are disabled
+        if self.gameOver:
+            return
+                    
         # Keyboard controls the moves of the player's unit
         if moveVector.x != 0 or moveVector.y != 0:
-            command = MoveCommand(self.gameState,self.playerUnit,moveVector)
-            self.commands.append(command)
-
+            self.commands.append(
+                MoveCommand(self.gameState,self.playerUnit,moveVector)
+            )
+                    
         # Mouse controls the target of the player's unit
         mousePos = pygame.mouse.get_pos()                    
         targetCell = Vector2()
@@ -427,48 +671,130 @@ class UserInterface():
             self.commands.append(
                 ShootCommand(self.gameState,self.playerUnit)
             )
-        
-         # Other units always target the player's unit and shoot if close enough
+                
+        # Other units always target the player's unit and shoot if close enough
         for unit in self.gameState.units:
             if unit != self.playerUnit:
-                command = TargetCommand(self.gameState,unit,self.playerUnit.position)
-                self.commands.append(command)
-                distance = unit.position.distance_to(self.playerUnit.position)
-                if distance <= self.gameState.bulletRange:
-                    self.commands.append(ShootCommand(self.gameState,unit))
-
+                self.commands.append(
+                    TargetCommand(self.gameState,unit,self.playerUnit.position)
+                )
+                if unit.position.distance_to(self.playerUnit.position) <= self.gameState.bulletRange:
+                    self.commands.append(
+                        ShootCommand(self.gameState,unit)
+                    )
+                
         # Bullets automatic movement
         for bullet in self.gameState.bullets:
             self.commands.append(
                 MoveBulletCommand(self.gameState,bullet)
             )
-
+            
         # Delete any destroyed bullet
         self.commands.append(
             DeleteDestroyedCommand(self.gameState.bullets)
         )
-    
+                    
     def update(self):
         for command in self.commands:
             command.run()
         self.commands.clear()
         self.gameState.epoch += 1
         
-    def render(self):
+        # Check game over
+        if self.playerUnit.status != "alive":
+            self.gameOver = True
+            self.ui.showMessage("GAME OVER")
+        else:
+            oneEnemyStillLives = False
+            for unit in self.gameState.units:
+                if unit == self.playerUnit:
+                    continue
+                if unit.status == "alive":
+                    oneEnemyStillLives = True
+                    break
+            if not oneEnemyStillLives:
+                self.gameOver = True
+                self.ui.showMessage("Victory !")
+        
+    def render(self, window):
         for layer in self.layers:
-            layer.render(self.screen)
+            layer.render(window)
+class UserInterface():
+    def __init__(self):
+        # Window
+        pygame.init()
+        self.window = pygame.display.set_mode((1280, 720))
+        pygame.display.set_caption("Tank game")
+        pygame.display.set_icon(pygame.image.load("tank.png"))
+        
+        # Modes
+        self.playGameMode = None
+        self.overlayGameMode = MenuGameMode(self)
+        self.currentActiveMode = 'Overlay'
+        
+        # Loop properties
+        self.clock = pygame.time.Clock()
+        self.running = True        
+        
+    def loadLevel(self, fileName):
+        if self.playGameMode is None:
+            self.playGameMode = PlayGameMode(self)
+        self.playGameMode.commands.append(LoadLevelCommand(self.playGameMode,fileName))
+        try:
+            self.playGameMode.update()
+            self.currentActiveMode = 'Play'
+        except Exception as ex:
+            print(ex)
+            self.playGameMode = None
+            self.showMessage("Level loading failed :-(")
+        
+    def showGame(self):
+        if self.playGameMode is not None:
+            self.currentActiveMode = 'Play'
 
-        pygame.display.update() 
-
-    def main(self):
+    def showMenu(self):
+        self.overlayGameMode = MenuGameMode(self)
+        self.currentActiveMode = 'Overlay'
+        
+    def showMessage(self, message):
+        self.overlayGameMode = MessageGameMode(self, message)
+        self.currentActiveMode = 'Overlay'
+        
+    def quitGame(self):
+        self.running = False
+       
+    def run(self):
         while self.running:
-            self.process_input()
-            self.update()
-            self.render()
+            # Inputs and updates are exclusives
+            if self.currentActiveMode == 'Overlay':
+                self.overlayGameMode.processInput()
+                self.overlayGameMode.update()
+            elif self.playGameMode is not None:
+                self.playGameMode.processInput()
+                try:
+                    self.playGameMode.update()
+                except Exception as ex:
+                    print(ex)
+                    self.playGameMode = None
+                    self.showMessage("Error during the game update...")
+                    
+            # Render game (if any), and then the overlay (if active)
+            if self.playGameMode is not None:
+                self.playGameMode.render(self.window)
+            else:
+                self.window.fill((0,0,0))
+            if self.currentActiveMode == 'Overlay':
+                darkSurface = pygame.Surface(self.window.get_size(),flags=pygame.SRCALPHA)
+                pygame.draw.rect(darkSurface, (0,0,0,150), darkSurface.get_rect())
+                self.window.blit(darkSurface, (0,0))
+                self.overlayGameMode.render(self.window)
+                
+            # Update display
+            pygame.display.update()    
             self.clock.tick(60)
-
-if __name__=="__main__":
-    game = UserInterface()
-    game.main()
-    pygame.quit()
-    sys.exit()
+            
+            
+userInterface = UserInterface()
+userInterface.run()
+            
+pygame.quit()
